@@ -1,0 +1,15 @@
+php new nombreProyecto // crea un proyecto desde 0 sin plantillas
+symfony server:start // arrancar el servidor
+composer require annotation // instala anotaciones para definir rutas.
+composer require logger // onstalacion del servicio logger
+
+ composer require symfony/orm-pack  // maping objeto relacional
+ composer require --dev symfony/maker-bundle  //paquete para mapear las clases de la base de datos
+
+ bin/console doctrine:database:create // crea la base de datos, comprobar en el php.ini las extensiones de la base de datos
+
+ composer require friendsofsymfony/rest-bundle // para construir la api requiere un serializer  para json, el de symfony
+composer require symfony/serializer-pack // el serializer de symfony
+composer require symfony/validator twig doctrine/annotations // es requrido para poder continuar
+
+composer require symfony/form // 
