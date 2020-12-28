@@ -1,5 +1,7 @@
 # Curso de Symfony 5. Creando una API desde cero
- https://www.patreon.com/latteandcode
+
+    https://www.youtube.com/channel/UCMVky0AEACLisBqM6mXxCng
+ 
 
 ## Capítulo 1. Configuración del proyecto
    
