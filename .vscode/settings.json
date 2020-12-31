@@ -1,0 +1,8 @@
+{
+    "symfony-vscode.phpExecutablePath": "C:\\Program Files\\php",
+    "symfony-vscode.parametersFilters": [
+    
+        "\\.class$",
+        "_class$"
+    ]
+}
