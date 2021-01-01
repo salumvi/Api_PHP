@@ -1,7 +1,11 @@
 # Curso de Symfony 5. Creando una API desde cero
 
+    Canal de youTube de Late and Code
     https://www.youtube.com/channel/UCMVky0AEACLisBqM6mXxCng
- 
+
+    una vez descargado el proyecto: 
+    composer update // para recomponer el proyecto.
+    php="7.4.13"
 
 ## Capítulo 1. Configuración del proyecto
    
@@ -61,3 +65,6 @@
                                  // crea una tabla intermedia  de forma automática con los id de cada una, no es necesario crearla
     bin/console make:migration // ejecutamos la migracion
     bin/console doctrine:migrations:migrate // me la llevo a base de datos
+
+##  Capítulo 10. Servicios
+    sacando la logica del controlador a servicios

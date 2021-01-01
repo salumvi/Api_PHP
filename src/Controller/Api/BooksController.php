@@ -1,18 +1,11 @@
 <?php
 namespace App\Controller\Api;
 
-use App\Entity\Book;
-use App\Entity\Category;
-use App\Form\Model\BookDTO;
-use App\Form\Model\CategoryDTO;
-use App\Form\Type\BookFormType;
-use App\Repository\BookRepository;
-use App\Repository\CategoryRepository;
-use App\Service\FileUploader;
-use Doctrine\Common\Collections\ArrayCollection;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Service\BookFormProcesor;
+use App\Service\BookManager;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
 use FOS\RestBundle\Controller\Annotations as Rest;
+use FOS\RestBundle\View\View;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -23,9 +16,9 @@ class BooksController extends AbstractFOSRestController
      * @Rest\Get(path="/books")
      * @Rest\View(serializerGroups={"book"}, serializerEnableMaxDepthChecks=true)
      */
-    public function getAction(BookRepository $bookRepo)
+    public function getAction(BookManager $bookManager)
     {
-        return $bookRepo->findAll();
+        return $bookManager->getRepository()->findAll();
     }
 
     /**
@@ -33,48 +26,20 @@ class BooksController extends AbstractFOSRestController
      * @Rest\View(serializerGroups={"book"}, serializerEnableMaxDepthChecks=true)
      */
     public function postAction(
-        EntityManagerInterface $em,
-        Request $request,
-        FileUploader $fileUploader,
-        CategoryRepository $categoryRepo) {
+        BookFormProcesor $bookFormProcesor,
+        BookManager $bookManager,
+        Request $request
+    ) {
 
-        $bookDTO = new BookDTO();
-        $form = $this->createForm(BookFormType::class, $bookDTO);
-        $form->handleRequest($request);
-        // deberiamos buscar el libro por nombre...
+        $book = $bookManager->create();
 
-        if (!$form->isSubmitted()) {
-            return new Response('', Response::HTTP_BAD_REQUEST);
-        }
+        // para llamar al método __invoque de la clase bookFormProcesor
+        [$book, $error] = ($bookFormProcesor)($book, $request);
+        // ahora manejamos la respuesta
+        $statusCode = $book ? Response::HTTP_CREATED : Response::HTTP_BAD_REQUEST;
+        $data = $book ?? $error;
+        return View::create($data, $statusCode);
 
-        if ($form->isSubmitted() && $form->isValid()) {
-           
-            // ponemos el título
-            $book = new Book();
-            $book->setTitle($bookDTO->title);
-            // ponemos la imagen
-            if ($bookDTO->imageBase64) {
-                $filename = $fileUploader->uploadBse64File($bookDTO->imageBase64);
-                $book->setImage($filename);
-            }
-            // ponemos las categorias que vienen en el libro
-            // estoe n un codigo que se repite.habría que ponerlo en un servicio
-            foreach ($bookDTO->categories as $newCatDto) {
-                $category = $categoryRepo->find($newCatDto->id ?? 0);
-                    if (!$category) {
-                        $category = new Category();
-                        $category->setName($newCatDto->name);
-                        $em->persist($category);
-                    }
-                    $book->addCategory($category);
-            }
-           
-
-            $em->persist($book);
-            $em->flush();
-            return $book;
-        }
-        return $form;
     }
 
     /**
@@ -83,78 +48,43 @@ class BooksController extends AbstractFOSRestController
      */
     public function editAction(
         int $id,
-        EntityManagerInterface $em,
-        BookRepository $bookRepo,
-        CategoryRepository $categoryRepo,
-        Request $request,
-        FileUploader $fileUploader
+        BookFormProcesor $bookFormProcesor,
+        BookManager $bookManager,
+        Request $request
     ) {
-        $book = $bookRepo->find($id);
+        $book = $bookManager->find($id);
 
         if (!$book) {
-            throw $this->createNotFoundException('libro no encontrado');
+            return View::create("Book nit found", Response::HTTP_BAD_REQUEST);
         }
 
-        $bookDTO = BookDTO::createFromBook($book);
+        // para llamar al método __invoque de la clase bookFormProcesor
+        [$book, $error] = ($bookFormProcesor)($book, $request);
+        // ahora manejamos la respuesta
 
-        $originalCategories = new ArrayCollection();
+        $statusCode = $book ? Response::HTTP_CREATED : Response::HTTP_BAD_REQUEST;
+        $data = $book ?? $error;
+        return View::create($data, $statusCode);
 
-        foreach ($book->getCategories() as $category) {
+    }
 
-            $categoryDto = CategoryDTO::createFromCategory($category);
-            $bookDTO->categories[] = $categoryDto;
-            $originalCategories->add($categoryDto);
+    /**
+     * @Rest\Delete(path="/book/{id}", requirements={"id"="\d+"})
+     * @Rest\View(serializerGroups={"book"}, serializerEnableMaxDepthChecks=true)
+     */
+    public function deleteAction(
+        int $id,
+        BookManager $bookManager,
+        Request $request
+    ) {
+        $book = $bookManager->find($id);
+
+        if (!$book) {
+            return View::create("Book not found", Response::HTTP_BAD_REQUEST);
         }
+        $bookManager->delete($book);
 
-        $form = $this->createForm(BookFormType::class, $bookDTO);
-        $form->handleRequest($request);
-        
-        if (!$form->isSubmitted()) {
-            return new Response('', Response::HTTP_BAD_REQUEST);
-        }
-        
-        if ($form->isValid()) {
-            // eliminar categorias
-            foreach ($originalCategories as $catDto) {
-
-                if (!in_array($catDto, $bookDTO->categories)) {
-                    $category = $categoryRepo->find($catDto->id);
-                    $book->removeCategory($category);
-
-                }
-            }
-
-            // añadir categorias seleccionadas
-            foreach ($bookDTO->categories as $newCatDto) {
-                if (!$originalCategories->contains($newCatDto)) {
-                    $category = $categoryRepo->find($newCatDto->id ?? 0);
-                    if (!$category) {
-                        $category = new Category();
-                        $category->setName($newCatDto->name);
-                        $em->persist($category);
-                        
-                    }
-                    $book->addCategory($category);
-                }
-            }
-            // le ponemos el titulo que queramos
-            if ($bookDTO->title) {
-                $book->setTitle($bookDTO->title);
-                }
-            if ($bookDTO->imageBase64) {
-                // TODO: borrar la anterior omagen
-                $fileImage = $fileUploader->uploadBse64File($bookDTO->imageBase64);
-                $book->setImage($fileImage);
-            }
-
-            $em->persist($book);
-            $em->flush();
-            $em->refresh($book); // para devolver un array no un objeto
-
-            return $book;
-        }
-
-        return $form;
+        return View::create(null, Response::HTTP_NO_CONTENT);
 
     }
 }
