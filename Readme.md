@@ -59,6 +59,7 @@
     bin/console doctrine:schema:update --env=test --force // migracion
     
 ## Capítulo 9. Categorías y Collection Type
+
     bin/console doctrine:database:create // crea la base de datos
     bin/console make:entity Category //creamos una nueva entidad
     bin/console make:entity Book // para realacionar la anterior clase con relacion many to many.  al ser una relacion manytomany se 
@@ -67,4 +68,14 @@
     bin/console doctrine:migrations:migrate // me la llevo a base de datos
 
 ##  Capítulo 10. Servicios
+
     sacando la logica del controlador a servicios
+
+## Capítulo 11. Autenticación y Security Bundle
+
+    composer require symfony/security-bundle //  para requerir el token en las cabeceras
+    desahabilitar el token csrf en los FormType: csrf_protection => false; se puede deshabilitar a nivel de framework en framework.yaml.
+    // tiene que trabajar con un User, hay que crearlo como dice en la documentación de Symfony securyty authenticator.
+    manejo de roles a traves del guard
+    lo suyo seria meter un JWT y validarlo y sacar la información del usario para permitirle el acceso. 
+    para el JWT se puede meter el bundle lexik JWT authenticator
